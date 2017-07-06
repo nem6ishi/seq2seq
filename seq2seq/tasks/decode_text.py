@@ -146,6 +146,8 @@ class DecodeText(InferenceTask):
 
     if "attention_scores" in self._predictions:
       fetches["attention_scores"] = self._predictions["attention_scores"]
+    elif "beam_search_output.original_outputs.attention_scores" in self._predictions:
+      fetches["beam_search_output.original_outputs.attention_scores"] = self._predictions["beam_search_output.original_outputs.attention_scores"]
 
     return tf.train.SessionRunArgs(fetches)
 
@@ -169,7 +171,10 @@ class DecodeText(InferenceTask):
       if self._unk_replace_fn is not None:
         # We slice the attention scores so that we do not
         # accidentially replace UNK with a SEQUENCE_END token
-        attention_scores = fetches["attention_scores"]
+        if "beam_search_output.original_outputs.attention_scores" in fetches:
+          attention_scores = fetches["beam_search_output.original_outputs.attention_scores"][:,0,:]
+        else:
+          attention_scores = fetches["attention_scores"]
         attention_scores = attention_scores[:, :source_len - 1]
         predicted_tokens = self._unk_replace_fn(
             source_tokens=source_tokens,
